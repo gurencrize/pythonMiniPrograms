@@ -40,7 +40,6 @@ def generate_toc_and_add_ids(html):
     toc_lines.append('<br /><b>目次</b><br />\n')
 
     prev_level = 0
-
     for level, title, hid in heading_data:
         if level > prev_level:
             for _ in range(level - prev_level):
@@ -56,7 +55,17 @@ def generate_toc_and_add_ids(html):
     toc_lines.append('</div>\n')
 
     toc_html = ''.join(toc_lines)
+
     return toc_html + html_with_ids
+
+def replace_linebreaks_in_paragraphs(html):
+    # <p>...</p> の中で \n を <br /> に変換
+    def replacer(match):
+        content = match.group(1)
+        content_with_br = content.replace('\n', '<br />\n')
+        return f"<p>{content_with_br}</p>"
+
+    return re.sub(r'<p>(.*?)</p>', replacer, html, flags=re.DOTALL)
 
 def convert_md_file(md_path):
     if not os.path.isfile(md_path) or not md_path.endswith('.md'):
@@ -66,9 +75,16 @@ def convert_md_file(md_path):
     with open(md_path, 'r', encoding='utf-8') as f:
         md_text = f.read()
 
+    # Markdown -> HTML
     html = markdown.markdown(md_text, extensions=['fenced_code', 'tables'])
+
+    # 改行を <br /> に変換
+    html = replace_linebreaks_in_paragraphs(html)
+
+    # 目次を追加
     final_html = generate_toc_and_add_ids(html)
 
+    # 保存
     html_path = os.path.splitext(md_path)[0] + '.html'
     with open(html_path, 'w', encoding='utf-8') as f:
         f.write(final_html)
